@@ -12,13 +12,18 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                // Checkout the code from version control
-                git 'https://github.com/Sethupathi904/devopsreactjs1.1.git'
-            }
-        }
-
+		stages {
+				stage('Checkout') {
+					steps {
+						script {
+							checkout([$class: 'GitSCM',
+								userRemoteConfigs: [[url: 'https://github.com/Sethupathi904/devopsreactjs1.1.git', credentialsId: 'your-git-credentials-id']],
+								branches: [[name: '*/main']]
+							])
+						}
+					}
+				}
+		}
         stage('Build Docker Image') {
             steps {
                 script {
