@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_CREDENTIALS_ID = 'Password@9' // Jenkins credentials ID for Docker Hub
+        DOCKER_CREDENTIALS_ID = 'dockerhub' // Jenkins credentials ID for Docker Hub
         IMAGE_NAME = 'sethu904/react-app' // Docker image name
 		PROJECT_ID = 'groovy-legacy-434014-d0'
 		CLUSTER_NAME = 'k8s-cluster'
