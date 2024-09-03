@@ -1,26 +1,27 @@
-# Stage 1: Build the ReactJS application
+# Stage 1: Build the React application
 FROM node:18 AS build
 
+# Set the working directory
 WORKDIR /app
 
-# Copy the package.json and package-lock.json
-COPY package.json package-lock.json ./
-
-# Install all dependencies, including react-redux
+# Install dependencies
+COPY package*.json ./
 RUN npm install
 
-# Set NODE_OPTIONS to use the legacy OpenSSL provider
-ENV NODE_OPTIONS=--openssl-legacy-provider
-
-# Copy the rest of the application code
+# Copy application code
 COPY . .
 
-# Build the ReactJS application
+# Build the React application
 RUN npm run build
 
-# Stage 2: Serve the ReactJS application
+# Stage 2: Serve the application with Nginx
 FROM nginx:alpine
+
+# Copy built files from the previous stage
 COPY --from=build /app/build /usr/share/nginx/html
 
+# Expose port 80 for the Nginx server
 EXPOSE 80
+
+# Run Nginx
 CMD ["nginx", "-g", "daemon off;"]
