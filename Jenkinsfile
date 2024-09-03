@@ -29,29 +29,34 @@ pipeline {
             }
         }
         
-        stage('Push Docker Image to GCP Artifact Registry') {
-            steps {
-                script {
-                    echo "Pushing Docker Image to GCP Artifact Registry"
-                    withCredentials([file(credentialsId: 'kubernetes', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                        // Authenticate with GCP
-                        sh "gcloud auth activate-service-account --key-file=${credentialsId}"
-                        
-                        // Debugging: Show current auth status
-                        sh "gcloud auth list"
-                        
-                        // Configure Docker to use GCP Artifact Registry
-                        sh "gcloud auth configure-docker gcr.io --quiet"
-                        
-                        // Push the Docker image
-                        sh "docker push ${IMAGE_NAME}:${TAG}"
-                        
-                        // Debugging: List Docker images in GCP Artifact Registry
-                        sh "gcloud artifacts docker images list gcr.io/${PROJECT_ID} --include-tags"
-                    }
-                }
-            }
-        }
+		stage('Push Docker Image to GCP Artifact Registry') {
+			steps {
+				script {
+					echo "Pushing Docker Image to GCP Artifact Registry"
+					
+					withCredentials([file(credentialsId: 'kubernetes', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+						// Authenticate with GCP
+						sh "gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}"
+						
+						// Debugging: Show current auth status
+						sh "gcloud auth list"
+						
+						// Configure Docker to use GCP Artifact Registry
+						sh "gcloud auth configure-docker gcr.io --quiet"
+						
+						// Debugging: List Docker images
+						sh "docker images"
+						
+						// Push the Docker image
+						sh "docker push gcr.io/groovy-legacy-434014-d0/react-app:${TAG}"
+						
+						// Debugging: List pushed images
+						sh "gcloud artifacts docker images list gcr.io/${PROJECT_ID} --include-tags"
+					}
+				}
+			}
+		}
+
         
         stage('Deploy to Kubernetes') {
             steps {
