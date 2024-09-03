@@ -1,29 +1,23 @@
-# Stage 1: Build the React application
-FROM node:18 AS build
+FROM node:16
 
-# Set the working directory
-WORKDIR /app
 
-# Copy package.json and package-lock.json first for better caching
+
+# Create app directory
+WORKDIR /usr/src/app
+
+# Install app dependencies
+# A wildcard is used to ensure both package.json AND package-lock.json are copied
+# where available (npm@5+)
 COPY package*.json ./
 
-# Install dependencies
 RUN npm install
+# If you are building your code for production
+# RUN npm install --only=production
 
-# Copy application code
+# Bundle app source
 COPY . .
 
-# Build the React application
-RUN npm run build
+EXPOSE 8080
+CMD [ "npm", "start" ]
 
-# Stage 2: Serve the application with Nginx
-FROM nginx:alpine
-
-# Copy built files from the previous stage
-COPY --from=build /app/build /usr/share/nginx/html
-
-# Expose port 80 for the Nginx server
-EXPOSE 80
-
-# Run Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# This is dummy change for git demo
