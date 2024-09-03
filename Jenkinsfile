@@ -1,83 +1,85 @@
 pipeline {
     agent any
-
+    
     environment {
-        IMAGE_NAME = 'gcr.io/groovy-legacy-434014-d0/react-app' // GCP Artifact Registry image name
         PROJECT_ID = 'groovy-legacy-434014-d0'
-        CLUSTER_NAME = 'k8s-cluster'
-        LOCATION = 'us-central1-c'
-        CREDENTIALS_ID = 'kubernetes'
-        PATH = "/usr/local/bin:${env.PATH}"
+        IMAGE_NAME = 'gcr.io/${env.PROJECT_ID}/react-app'
+        TAG = "${env.BUILD_ID}"
     }
-
+    
     stages {
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
-                checkout scm // Checks out code from the repository
+                checkout scm
             }
         }
-
-        stage('Verify Docker') {
-            steps {
-                script {
-                    sh 'docker --version'
-                    sh 'docker info'
-                }
-            }
-        }
-
+        
         stage('Build Docker Image') {
             steps {
                 script {
-                    myimage = docker.build("${IMAGE_NAME}:${env.BUILD_ID}")
+                    echo "Building Docker Image"
+                    sh "docker build -t ${env.IMAGE_NAME}:latest ."
+                    
+                    echo "Tagging Docker Image"
+                    sh "docker tag ${env.IMAGE_NAME}:latest ${env.IMAGE_NAME}:${env.TAG}"
+                    
+                    echo "Listing Docker Images"
+                    sh "docker images"
                 }
             }
         }
-
+        
         stage('Push Docker Image to GCP Artifact Registry') {
             steps {
                 script {
                     echo "Pushing Docker Image to GCP Artifact Registry"
                     withCredentials([file(credentialsId: 'kubernetes', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                        // Authenticate with GCP
+                        sh "gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}"
+                        
                         // Debugging: Show current auth status
                         sh "gcloud auth list"
                         
-                        // Authenticate with GCP
-                        sh "gcloud auth activate-service-account --key-file=${CREDENTIALS_ID}"
-                        
-                        // Debugging: Confirm the auth succeeded
-                        sh "gcloud config list account"
-                        
                         // Configure Docker to use GCP Artifact Registry
                         sh "gcloud auth configure-docker gcr.io --quiet"
+                        
+                        // Push the Docker image
+                        sh "docker push ${env.IMAGE_NAME}:${env.TAG}"
+                        
+                        // Debugging: List Docker images in GCP Artifact Registry
+                        sh "gcloud artifacts docker images list gcr.io/${env.PROJECT_ID} --include-tags"
                     }
-                    
-                    // Push the Docker image to GCP Artifact Registry
-                    sh "docker push ${IMAGE_NAME}:${env.BUILD_ID}"
                 }
             }
         }
-
-        stage('Deploy to K8s') {
+        
+        stage('Deploy to Kubernetes') {
             steps {
-                echo "Deployment started ..."
-                sh 'ls -ltr'
-                sh 'pwd'
-                sh "sed -i 's|gcr.io/groovy-legacy-434014-d0/react-app:latest|${IMAGE_NAME}:${env.BUILD_ID}|g' deployment.yaml"
-                sh "sed -i 's/tagversion/${env.BUILD_ID}/g' deployment.yaml"
-                sh "sed -i 's/tagversion/${env.BUILD_ID}/g' serviceLB.yaml"
-                echo "Start deployment of serviceLB.yaml"
-                step([$class: 'KubernetesEngineBuilder', projectId: env.PROJECT_ID, clusterName: env.CLUSTER_NAME, location: env.LOCATION, manifestPattern: 'serviceLB.yaml', credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
-                echo "Start deployment of deployment.yaml"
-                step([$class: 'KubernetesEngineBuilder', projectId: env.PROJECT_ID, clusterName: env.CLUSTER_NAME, location: env.LOCATION, manifestPattern: 'deployment.yaml', credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
-                echo "Deployment Finished ..."
+                script {
+                    echo "Deploying to Kubernetes"
+                    
+                    // Set kubectl context
+                    sh "gcloud container clusters get-credentials k8s-cluster --zone us-central1-c --project ${env.PROJECT_ID}"
+                    
+                    // Deploy to Kubernetes
+                    sh "kubectl apply -f deployment.yaml"
+                    sh "kubectl apply -f serviceLB.yaml"
+                }
             }
         }
     }
-
+    
     post {
         always {
-            cleanWs() // Cleans workspace after build
+            echo 'Pipeline completed'
+        }
+        success {
+            echo 'Pipeline succeeded'
+            // Email notification or other actions
+        }
+        failure {
+            echo 'Pipeline failed'
+            // Email notification or other actions
         }
     }
 }
