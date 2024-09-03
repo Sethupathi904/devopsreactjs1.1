@@ -4,60 +4,69 @@ pipeline {
     environment {
         DOCKER_CREDENTIALS_ID = 'Password@9' // Jenkins credentials ID for Docker Hub
         IMAGE_NAME = 'sethu904/react-app' // Docker image name
-        PROJECT_ID = 'groovy-legacy-434014-d0'
-        CLUSTER_NAME = 'k8s-cluster'
-        LOCATION = 'us-central1-c'
-        CREDENTIALS_ID = 'kubernetes'
-        PATH = "/usr/local/bin:${env.PATH}"
+		PROJECT_ID = 'groovy-legacy-434014-d0'
+		CLUSTER_NAME = 'k8s-cluster'
+		LOCATION = 'us-central1-c'
+		CREDENTIALS_ID = 'kubernetes'	
+		PATH = "/usr/local/bin:${env.PATH}"	
     }
 
     stages {
-		stages {
-				stage('Checkout') {
-					steps {
-						script {
-							checkout([$class: 'GitSCM',
-								userRemoteConfigs: [[url: 'https://github.com/Sethupathi904/devopsreactjs1.1.git', credentialsId: 'your-git-credentials-id']],
-								branches: [[name: '*/main']]
-							])
-						}
-					}
-				}
-		}
-        stage('Build Docker Image') {
+        stage('Checkout') {
+            steps {
+                checkout scm // Checks out code from the repository
+            }
+        }
+
+        stage('Verify Docker') {
             steps {
                 script {
-                    docker.build("${IMAGE_NAME}:latest")
+                    sh 'docker --version'
+                    sh 'docker info'
                 }
             }
         }
 
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
-                        docker.image("${IMAGE_NAME}:latest").push()
-                    }
-                }
-            }
-        }
+	    stage('Build Docker Image') {
+		    steps {
+			    sh 'whoami'
+			    script {
+				    myimage = docker.build("sethu904/react-app:${env.BUILD_ID}")
+			    }
+		    }
+	    }
 
-        stage('Deploy to GKE') {
-            steps {
-                script {
-                    // Authenticate with GKE
-                    withCredentials([file(credentialsId: CREDENTIALS_ID, variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                        sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
-                        sh 'gcloud config set project ${PROJECT_ID}'
-                        sh 'gcloud config set compute/zone ${LOCATION}'
-                        sh 'gcloud container clusters get-credentials ${CLUSTER_NAME}'
-                    }
+	    stage("Push Docker Image") {
+		    steps {
+			    script {
+				    echo "Push Docker Image"
+				    withCredentials([string(credentialsId: 'dockerhub', variable: 'dockerhub')]) {
+            				sh "docker login -u sethu904 -p ${dockerhub}"
+				    }
+				        myimage.push("${env.BUILD_ID}")
+				    
+			    }
+		    }
+	    }
+		stage('Deploy to K8s') {
+		    steps{
+			    echo "Deployment started ..."
+			    sh 'ls -ltr'
+			    sh 'pwd'
+			    sh "sed -i 's/tagversion/${env.BUILD_ID}/g' serviceLB.yaml"
+				sh "sed -i 's/tagversion/${env.BUILD_ID}/g' deployment.yaml"
+			    echo "Start deployment of serviceLB.yaml"
+			    step([$class: 'KubernetesEngineBuilder', projectId: env.PROJECT_ID, clusterName: env.CLUSTER_NAME, location: env.LOCATION, manifestPattern: 'serviceLB.yaml', credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
+				echo "Start deployment of deployment.yaml"
+				step([$class: 'KubernetesEngineBuilder', projectId: env.PROJECT_ID, clusterName: env.CLUSTER_NAME, location: env.LOCATION, manifestPattern: 'deployment.yaml', credentialsId: env.CREDENTIALS_ID, verifyDeployments: true])
+			    echo "Deployment Finished ..."
+		    }
+	    }
+	}
 
-                    // Apply Kubernetes manifests
-                    sh 'kubectl apply -f k8s/deployment.yaml'
-                    sh 'kubectl apply -f k8s/service.yaml'
-                }
-            }
+    post {
+        always {
+            cleanWs() // Cleans workspace after build
         }
     }
 }
