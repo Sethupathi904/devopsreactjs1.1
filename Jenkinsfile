@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         PROJECT_ID = 'groovy-legacy-434014-d0'
-        IMAGE_NAME = 'gcr.io/${env.PROJECT_ID}/react-app'
+        IMAGE_NAME = "gcr.io/${env.PROJECT_ID}/react-app"
         TAG = "${env.BUILD_ID}"
     }
     
@@ -18,10 +18,10 @@ pipeline {
             steps {
                 script {
                     echo "Building Docker Image"
-                    sh "docker build -t ${env.IMAGE_NAME}:latest ."
+                    sh "docker build -t ${IMAGE_NAME}:latest ."
                     
                     echo "Tagging Docker Image"
-                    sh "docker tag ${env.IMAGE_NAME}:latest ${env.IMAGE_NAME}:${env.TAG}"
+                    sh "docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:${TAG}"
                     
                     echo "Listing Docker Images"
                     sh "docker images"
@@ -44,10 +44,10 @@ pipeline {
                         sh "gcloud auth configure-docker gcr.io --quiet"
                         
                         // Push the Docker image
-                        sh "docker push ${env.IMAGE_NAME}:${env.TAG}"
+                        sh "docker push ${IMAGE_NAME}:${TAG}"
                         
                         // Debugging: List Docker images in GCP Artifact Registry
-                        sh "gcloud artifacts docker images list gcr.io/${env.PROJECT_ID} --include-tags"
+                        sh "gcloud artifacts docker images list gcr.io/${PROJECT_ID} --include-tags"
                     }
                 }
             }
@@ -59,7 +59,7 @@ pipeline {
                     echo "Deploying to Kubernetes"
                     
                     // Set kubectl context
-                    sh "gcloud container clusters get-credentials k8s-cluster --zone us-central1-c --project ${env.PROJECT_ID}"
+                    sh "gcloud container clusters get-credentials k8s-cluster --zone us-central1-c --project ${PROJECT_ID}"
                     
                     // Deploy to Kubernetes
                     sh "kubectl apply -f deployment.yaml"
