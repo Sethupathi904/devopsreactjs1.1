@@ -35,7 +35,7 @@ pipeline {
                     echo "Pushing Docker Image to GCP Artifact Registry"
                     withCredentials([file(credentialsId: 'kubernetes', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                         // Authenticate with GCP
-                        sh "gcloud auth activate-service-account --key-file=${kubernetes}"
+                        sh "gcloud auth activate-service-account --key-file=${credentialsId}"
                         
                         // Debugging: Show current auth status
                         sh "gcloud auth list"
