@@ -1,19 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: react-app
+ name: myapp
+ labels:
+  app: myapp
 spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: react-app
-  template:
-    metadata:
-      labels:
-        app: react-app
-    spec:
-      containers:
-      - name: react-app
-        image: gcr.io/your-project-id/react-app:latest
-        ports:
-        - containerPort: 80
+ replicas: 1
+ selector:
+  matchLabels:
+   app: myapp
+ template:
+  metadata: 
+   labels:
+    app: myapp
+  spec:
+   containers:
+   - name: myapp
+     image: gcr.io/groovy-legacy-434014-d0/devops:tagversion
+     ports:
+     - containerPort: 80
