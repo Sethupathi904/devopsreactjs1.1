@@ -43,7 +43,7 @@ pipeline {
                         sh "gcloud auth list"
                         
                         // Authenticate with GCP
-                        sh "gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}"
+                        sh "gcloud auth activate-service-account --key-file=${CREDENTIALS_ID}"
                         
                         // Debugging: Confirm the auth succeeded
                         sh "gcloud config list account"
