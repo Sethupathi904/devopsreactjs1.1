@@ -1,25 +1,24 @@
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
- name: myapp
- labels:
-  app: myapp
-spec:
- replicas: 1
- selector:
-  matchLabels:
-   app: myapp
- template:
-  metadata: 
-   labels:
+  name: myapp
+  labels:
     app: myapp
-  spec:
-   containers:
-   - name: myapp
-     image: sethu904/react-app:tagversion
-     ports:
-     - containerPort: 80
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata: 
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp
+        image: sethu904/react-app:tagversion
+        ports:
+        - containerPort: 80
 
 ---
 apiVersion: v1
