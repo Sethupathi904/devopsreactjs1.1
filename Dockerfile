@@ -3,8 +3,10 @@ FROM node:18 AS build
 
 WORKDIR /app
 
-# Install dependencies
+# Copy the package.json and package-lock.json
 COPY package.json package-lock.json ./
+
+# Install all dependencies, including react-redux
 RUN npm install
 
 # Set NODE_OPTIONS to use the legacy OpenSSL provider
