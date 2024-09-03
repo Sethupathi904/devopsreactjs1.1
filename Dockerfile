@@ -4,6 +4,9 @@ FROM node:18 AS build
 # Set the working directory
 WORKDIR /app
 
+# Set environment variable for OpenSSL legacy provider
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
 # Install dependencies
 COPY package*.json ./
 RUN npm install
